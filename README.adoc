@@ -1,12 +1,14 @@
 = Ryan's AVA Testing Organization Style
 Ryan Leonard
 :ava: AVA
-:aval: link:https://github.com/avajs/ava[{ava}]
+:ava-link: https://github.com/avajs/ava
+:aval: link:{ava-link}[{ava}]
 :ava-assertions: link:https://github.com/avajs/ava#assertions[assertions]
 :mocha: Mocha
 :mochal: link:https://mochajs.org/[{mocha}]
 :chai: Chai
 :chail: link:http://chaijs.com/[{chai}]
+:guide-link-title: Ryan's AVA Test Style
 :guide-link: https://github.com/CodeLenny/ava-test-style
 :guide-badge: https://img.shields.io/badge/AVA%20Test%20Style-@CodeLenny-blue.svg
 
@@ -29,3 +31,18 @@ convinced that another way is better.
 ----
 [![AVA Test Style Guide]({guide-badge})]({guide-link})
 ----
+
+.Text Reference
+[source,md,subs="attributes"]
+----
+This module is tested using [{ava}]({ava-link}).
+Tests should conform to [{guide-link-title}]({guide-link}).
+----
+
+== Highlights
+
+- Tests are code, and should conform to lint rules.
+- The file-system reflects the organization of tests.
+- Unit tests are separated from integration tests.
+- Put all setup in `before`/`beforeEach` statements.
+- Use built-in test organization messages over inline comments or `README` descriptions when possible.
