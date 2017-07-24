@@ -19,6 +19,8 @@ Ryan Leonard
 :guide-link-title: Ryan's AVA Test Style
 :guide-link: https://github.com/CodeLenny/ava-test-style
 :guide-badge: https://img.shields.io/badge/AVA%20Test%20Style-@CodeLenny-blue.svg
+:sectanchors:
+:sectlinks:
 :toc: preamble
 
 {aval} is a powerful testing platform that I've been using in most of my repositories instead of {mochal}.
@@ -51,7 +53,7 @@ Tests should conform to [{guide-link-title}]({guide-link}).
 == Highlights
 
 - Tests are code, and should conform to lint rules.
-- The file-system reflects the organization of tests, and follows a standard pattern
+- The file-system reflects the organization of tests, and follows a <<File-System Structure,standard pattern>>.
 - Unit tests are separated from integration tests.
 - Tests are designed for other humans.
   Describe tests from the point of view of a user, without referencing implementation details.
@@ -147,7 +149,7 @@ with routes that use `Users` and `Projects` to store and retrieve data for clien
 
 All other tests will be located in the `test/` directory for each module.
 
-=== Unit Tests
+=== Unit Test Organization
 
 Unit tests should be stored in `<module>/test/<class>/<method>/<scenario>.js`.
 
@@ -163,7 +165,7 @@ For instance, the above tests could also be located inside `users/test/auth/Auth
 Try to collapse directories as much as possible.
 Only use sub-directories in `test` if collapsing directories severely impacts understanding the test organization.
 
-=== HTTP Unit Tests
+=== HTTP Unit Tests Organization
 
 HTTP unit tests are an interesting mix - they should be isolated to a single "method", but you may need to access a
 larger section of code to get the HTTP routing logic.
@@ -203,7 +205,7 @@ HTTP unit tests should be located in `<module>/test/http/<url>/<http method>/<as
 
 The test referenced above should be located in `server/test/http/register/POST/pass-to-Users-reigster.js`.
 
-=== Interface Integration Tests
+=== Interface Integration Test Organization
 
 Interface integration tests are very similar to unit tests, and are stored almost identically.
 However, you should note what other modules are being used in the test.
@@ -218,7 +220,7 @@ For interface tests, we will be testing that `Users.getByID` and `Project#getOwn
 `projects/test/Project/getOwner/relays-Users-getByID.js` would use un-mocked `Users` and `Project` method, but should
 mock the contents of the database.
 
-=== Integration Tests
+=== Integration Test Organization
 
 Integration tests should test user flow through the application, with minimal mocking.
 
