@@ -8,6 +8,14 @@ Ryan Leonard
 :mochal: link:https://mochajs.org/[{mocha}]
 :chai: Chai
 :chail: link:http://chaijs.com/[{chai}]
+:jsverify: JSVerify
+:jsverifyl: link:https://github.com/jsverify/jsverify[{jsverify}]
+:express: Express
+:expressl: link:http://expressjs.com/[{express}]
+:seleniumdrive: Selenium WebDriver
+:seleniumdrivel: link:http://www.seleniumhq.org/projects/webdriver/[{seleniumdrive}]
+:webdriver: WebDriverIO
+:webdriverl: link:http://webdriver.io/[{webdriver}]
 :guide-link-title: Ryan's AVA Test Style
 :guide-link: https://github.com/CodeLenny/ava-test-style
 :guide-badge: https://img.shields.io/badge/AVA%20Test%20Style-@CodeLenny-blue.svg
@@ -43,7 +51,184 @@ Tests should conform to [{guide-link-title}]({guide-link}).
 == Highlights
 
 - Tests are code, and should conform to lint rules.
-- The file-system reflects the organization of tests.
+- The file-system reflects the organization of tests, and follows a standard pattern
 - Unit tests are separated from integration tests.
+- Tests are designed for other humans.
+  Describe tests from the point of view of a user, without referencing implementation details.
+- Use property-based testing (such as {jsverifyl}) to find edge-cases and write consise tests.
 - Put all setup in `before`/`beforeEach` statements.
+- Duplicating documentation should be avoided at all costs.
 - Use built-in test organization messages over inline comments or `README` descriptions when possible.
+
+== Top-Level Test Organization
+
+Tests are categorized into the following groups:
+
+unit tests::
+Independently testing a method, mocking all external dependencies.
+HTTP unit test::
+Simple usage or edge case testing of an HTTP method.
+interface integration test::
+Testing a method against a single instance of an external dependency.
+All other resources should be mocked.
+integration test::
+A full-scale test involving almost no mocked components, that tests an entire flow from the user's perspective.
+Run before packaging.
+package integration test::
+If the application is packaged (such as a webserver packaged in a Docker image),
+package integration tests run on the fully packaged build
+(such as using a Chrome instance to connect to the webserver running in Docker).
+
+The test groups listed above are ordered from least to most expensive to run - starting a Docker image to test a smaller
+component takes a lot longer than just running a short unit test with all external resources mocked.
+
+Therefore, unit tests should be used for most purposes.
+Unit tests should cover the basic usage of the method (give correct input, get correct response)
+and cover how the method handles edge cases (given invalid input, asked for non-existent resource, etc.).
+
+Unit tests should be validating the documented signature - expected parameters, calling other methods with the proper
+signature, and returning the expected result.
+
+All tests beyond unit tests should be minimal flows through the application.
+
+For interface integration tests, when one class (`CallingClass`) calls another (`CalledClass`),
+we've already checked that `CallingClass` calls `CalledClass` with the documented parameters,
+and separately tested that `CalledClass` returns the correct input when given the correct parameters.
+
+Therefore, the interface integration test is only testing that the two classes are in sync with each other, and don't
+have any mistakes with basic usage.
+
+Integration tests also test that already-tested components are wired together correctly, from a user's point of view.
+Integration tests treat the entire application as a black box, and merely test input at one end compared to output at
+the other.
+
+Package integration tests should be even more minimal, just ensuring that the packaged application does start without
+any errors (such as missing dependencies or differences between the testing and packaged environments),
+and continues working with one or two basic flows through the application.
+
+=== File-System Structure
+
+Most of this documentation will assume a monolithic repository structure that includes several libraries packaged as NPM
+packages.
+
+We'll use an webserver that deals with users and projects.
+
+----
+repo/
+  package.json
+  web-server/
+    package.json
+    Dockerfile
+    Server.js
+    test/
+    package-test/
+  users/
+    auth/
+      AuthenticationMethod.js
+      PasswordAuthentication.js
+    package.json
+    Users.js
+    User.js
+    test/
+  projects/
+    package.json
+    Projects.js
+    Project.js
+    test/
+----
+
+`users`, and `projects` are each NPM libraries that are installed in `web-server`.
+
+`web-server/Server.js` will setup an {expressl} webserver
+with routes that use `Users` and `Projects` to store and retrieve data for clients.
+
+`web-server` has a `package-test/` directory that contains tests that will run in browsers
+(such as through {seleniumdrivel} or {webdriverl}) against `Server` running in a Docker instance.
+
+All other tests will be located in the `test/` directory for each module.
+
+=== Unit Tests
+
+Unit tests should be stored in `<module>/test/<class>/<method>/<scenario>.js`.
+
+For instance, tests that confirm `Users.getByID()` fetches users would be located in
+`users/test/Users/getByID/fetches-users.js`.
+
+If classes have unique names, collapse directories when testing.
+For instance, tests for `users/auth/AuthenticationMethod.js` can be located in `users/test/AuthenticationMethod/...`.
+
+If classes do not have unique names, you can use directories inside `test/` to keep tests seperate.
+For instance, the above tests could also be located inside `users/test/auth/AuthenticationMethod/...`.
+
+Try to collapse directories as much as possible.
+Only use sub-directories in `test` if collapsing directories severely impacts understanding the test organization.
+
+=== HTTP Unit Tests
+
+HTTP unit tests are an interesting mix - they should be isolated to a single "method", but you may need to access a
+larger section of code to get the HTTP routing logic.
+
+In general, HTTP routing logic should be basic wrappers around other functions.
+For user registration, the logic might look like:
+
+[source,js]
+----
+const Users = require("users/Users");
+const express = require("express");
+const bodyParser = require("body-parser");
+
+class Server {
+  constructor() {
+    this.app = express();
+    this.app.post("/register", bodyParser.json(), (req, res) => {
+      const { email, password } = req.body;
+      Users
+        .register(email, password)
+        .then(user => {
+          req.redirect("/login");
+        })
+        .catch(err => {
+          res.status(500);
+          res.send("Internal Error");
+        });
+    });
+  }
+}
+----
+
+For this example, `Users.register()` should be already unit tested, so the HTTP logic just needs to attempt to submit a
+form, and ensure that `Users.register()` is called with the correct information.
+
+HTTP unit tests should be located in `<module>/test/http/<url>/<http method>/<assertion>.js`.
+
+The test referenced above should be located in `server/test/http/register/POST/pass-to-Users-reigster.js`.
+
+=== Interface Integration Tests
+
+Interface integration tests are very similar to unit tests, and are stored almost identically.
+However, you should note what other modules are being used in the test.
+
+Let's test `Project#getOwner()`, which calls `Users.getByID()`, which in turn accesses the database.
+
+A unit test might be `projects/test/Project/getOwner/returns-user.js` should be run with `Users.getByID` mocked,
+and confirm that `Users.getByID()` is called with the ID of the project's owner, and correctly returns the user that
+`Users.getByID()` returns.
+
+For interface tests, we will be testing that `Users.getByID` and `Project#getOwner` are correctly talking to each other.
+`projects/test/Project/getOwner/relays-Users-getByID.js` would use un-mocked `Users` and `Project` method, but should
+mock the contents of the database.
+
+=== Integration Tests
+
+Integration tests should test user flow through the application, with minimal mocking.
+
+In general, integration tests should be located in `<module>/test/integration/<scenario>/<assertion>.js`.
+
+For instance, a test confirming users can log in after registering would be located in
+`users/test/integration/user-register-and-login/password-authentication.js`.
+
+In general, integration tests should be confirming that the module works as a whole,
+so integration tests can be lumped together.
+
+However, integration tests that are isolated to a minor class that doesn't represent the rest of the module could be
+located inside the test directory for that class - such as `users/test/AuthenticationMethod/integration/...`.
