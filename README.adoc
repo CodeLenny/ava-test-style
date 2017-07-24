@@ -11,6 +11,7 @@ Ryan Leonard
 :guide-link-title: Ryan's AVA Test Style
 :guide-link: https://github.com/CodeLenny/ava-test-style
 :guide-badge: https://img.shields.io/badge/AVA%20Test%20Style-@CodeLenny-blue.svg
+:toc: preamble
 
 {aval} is a powerful testing platform that I've been using in most of my repositories instead of {mochal}.
 After trying out {ava} in many repositories, I've started to settle into a standard style that works well for creating
