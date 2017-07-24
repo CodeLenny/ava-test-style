@@ -57,7 +57,7 @@ Tests should conform to [{guide-link-title}]({guide-link}).
 - Unit tests are separated from integration tests.
 - Tests are designed for other humans.
   Describe tests from the point of view of a user, without referencing implementation details.
-- Use property-based testing (such as {jsverifyl}) to find edge-cases and write consise tests.
+- Use property-based testing (such as {jsverifyl}) to find edge-cases and write concise tests.
 - Put all setup in `before`/`beforeEach` statements.
 - Duplicating documentation should be avoided at all costs.
 - Use built-in test organization messages over inline comments or `README` descriptions when possible.
