@@ -1,0 +1,31 @@
+= Ryan's AVA Testing Organization Style
+Ryan Leonard
+:ava: AVA
+:aval: link:https://github.com/avajs/ava[{ava}]
+:ava-assertions: link:https://github.com/avajs/ava#assertions[assertions]
+:mocha: Mocha
+:mochal: link:https://mochajs.org/[{mocha}]
+:chai: Chai
+:chail: link:http://chaijs.com/[{chai}]
+:guide-link: https://github.com/CodeLenny/ava-test-style
+:guide-badge: https://img.shields.io/badge/AVA%20Test%20Style-@CodeLenny-blue.svg
+
+{aval} is a powerful testing platform that I've been using in most of my repositories instead of {mochal}.
+After trying out {ava} in many repositories, I've started to settle into a standard style that works well for creating
+clean, understandable, and simple testing files.
+
+This document attempts to record my current style for writing {ava} tests.
+Some of my style is intuitive to {ava},
+like using the built-in {ava-assertions} instead of external assertion libraries like {chail},
+but other stylistic decisions are my own.
+
+This guide is intended to serve as a reference for libraries that follow my style choices.
+If you have differing style choices to mine, feel free to fork this style guide and tweak to your liking.
+You can also submit issues or pull requests and discuss pros and cons to different choices, and I may tweak my style if
+convinced that another way is better.
+
+.Embedable Badge image:{guide-badge}[]
+[source,md,subs="attributes"]
+----
+[![AVA Test Style Guide]({guide-badge})]({guide-link})
+----
