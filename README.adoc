@@ -64,7 +64,9 @@ Tests should conform to [{guide-link-title}]({guide-link}).
 
 == Top-Level Test Organization
 
-Tests are categorized into the following groups:
+Tests are categorized by scope, ranging from small unit tests to larger integration tests.
+This guide attempts to provide clear distinctions between unit and integration tests, and has named a few other test
+categories.
 
 unit tests::
 Independently testing a method, mocking all external dependencies.
@@ -75,7 +77,7 @@ Testing a method against a single instance of an external dependency.
 All other resources should be mocked.
 integration test::
 A full-scale test involving almost no mocked components, that tests an entire flow from the user's perspective.
-Run before packaging.
+Run with AVA in parallel to unit tests, before packaging.
 package integration test::
 If the application is packaged (such as a webserver packaged in a Docker image),
 package integration tests run on the fully packaged build
