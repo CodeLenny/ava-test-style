@@ -19,6 +19,8 @@ Ryan Leonard
 :guide-link-title: Ryan's AVA Test Style
 :guide-link: https://github.com/CodeLenny/ava-test-style
 :guide-badge: https://img.shields.io/badge/AVA%20Test%20Style-@CodeLenny-blue.svg
+:do: image:https://img.shields.io/badge/-_DO_-brightgreen.svg[]
+:dont: image:https://img.shields.io/badge/-DON'T-red.svg[]
 :sectanchors:
 :sectlinks:
 :toc: preamble
@@ -109,6 +111,11 @@ the other.
 Package integration tests should be even more minimal, just ensuring that the packaged application does start without
 any errors (such as missing dependencies or differences between the testing and packaged environments),
 and continues working with one or two basic flows through the application.
+
+[%hardbreaks]
+{do} Carefully organize testing files.
+{do} Focus on unit tests.
+{dont} Duplicate tests.
 
 === File-System Structure
 
