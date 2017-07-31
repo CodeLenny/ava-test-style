@@ -4,6 +4,10 @@ Ryan Leonard
 :ava-link: https://github.com/avajs/ava
 :aval: link:{ava-link}[{ava}]
 :ava-assertions: link:https://github.com/avajs/ava#assertions[assertions]
+:ava-macros: test macros
+:ava-macrosl: link:https://github.com/avajs/ava#test-macros[{ava-macros}]
+:ava-plan: assertion planning
+:ava-planl: link:https://github.com/avajs/ava#assertion-planning[{ava-plan}]
 :mocha: Mocha
 :mochal: link:https://mochajs.org/[{mocha}]
 :chai: Chai
@@ -16,11 +20,15 @@ Ryan Leonard
 :seleniumdrivel: link:http://www.seleniumhq.org/projects/webdriver/[{seleniumdrive}]
 :webdriver: WebDriverIO
 :webdriverl: link:http://webdriver.io/[{webdriver}]
+:babel: Babel
+:babell: link:https://babeljs.io/[{babel}]
 :guide-link-title: Ryan's AVA Test Style
 :guide-link: https://github.com/CodeLenny/ava-test-style
 :guide-badge: https://img.shields.io/badge/AVA%20Test%20Style-@CodeLenny-blue.svg
 :do: image:https://img.shields.io/badge/-_DO_-brightgreen.svg[]
+:dotitle: DO:
 :dont: image:https://img.shields.io/badge/-DON'T-red.svg[]
+:donttitle: DON'T:
 :sectanchors:
 :sectlinks:
 :toc: preamble
@@ -243,3 +251,227 @@ so integration tests can be lumped together.
 
 However, integration tests that are isolated to a minor class that doesn't represent the rest of the module could be
 located inside the test directory for that class - such as `users/test/AuthenticationMethod/integration/...`.
+
+////
+== What to Test
+TODO: Describe what tests should go with each category
+////
+
+== Test File Structure
+
+All test files should follow the same structure:
+
+[source,js]
+----
+// require/imports
+
+// before/after logic
+
+// macros
+
+// test contents
+----
+
+//TODO: Include test 'constants' (to be used in `beforeEach()` + `test()`)
+
+=== Requires/Imports
+
+Unless you have good reason for it, put all the `require()` or `import` statements at the top of the file.
+
+AVA currently comes shipped with {babell}, so you can use `import` statements with the current version of Node.
+
+If your internal code and documentation are using `import`, you probably should use `import` statements in your testing
+files.
+
+For all other use cases, we recommend using `require()` while `import` isn't natively supported in Node to reduce the
+amount of transcompilation.  Either way, use a consistent syntax across your repository.
+
+Roughly order libraries from built-in to local source files.
+
+// TODO: mention NODE_PATH somewhere
+
+[source,js]
+----
+// Libraries needed to modify subsequent imports:
+const Promise = require("bluebird");
+// Node built-in libraries:
+const fs = Promise.promisifyAll(require("fs"));
+const path = require("path");
+// External libraries:
+const reduce = require("lodash.reduce");
+const express = require("express");
+const request = require("supertest");
+// Test setup:
+const setup = {
+  rethink: require("ava-rethinkdb"),
+};
+
+// Source files:
+const Users = require("Users");
+----
+
+=== Before/After Logic
+
+All test setup and teardown should be done in `before`/`after` blocks.
+Setup and teardown methods can come from remote libraries or from local files.
+
+[source,js]
+----
+// Remote libraries
+test.before(setup.rethink.init());
+test.after.always(setup.rethink.cleanup);
+
+// Internal
+test.beforeEach("create Users instance", t => {
+  t.context.users = new Users();
+});
+----
+
+{do} Always name `before`/`after` blocks.
+
+.{dotitle} Break Tasks into Multiple Statements
+[source,js]
+----
+test.beforeEach("create user", t => {
+  t.context.user = new User("Bob");
+});
+
+test.beforeEach("add user to Users", t => {
+  t.context.users.add(t.context.user);
+});
+----
+
+.{dotitle} Put Setup inside `beforeEach`
+[source,js]
+----
+test.beforeEach("create server", t => {
+  t.context.app = express();
+  app.use(myRouter);
+});
+
+test("runs", t => {
+  return request(t.context.app)
+    .get("/")
+    .then(res => t.is(res.body, "Hello World"));
+});
+----
+
+.{donttitle} Include setup inside `test`
+[source,js]
+----
+test("runs", t => {
+  let app = express();
+  app.use(myRouter);
+  request(app);
+  return request(app)
+    .get("/")
+    .then(res => t.is(res.body, "Hello World"));
+});
+----
+
+=== Test Macros
+
+{do} Use {ava-macrosl}!
+
+Use macros for any repeated code.
+
+.Basic Macro Usage
+[source,js]
+----
+const add = require("add");
+
+function adds(t, a, b, c) {
+  test.is(add(a, b), c);
+}
+adds.title = (title, a, b, c) => `add(${a}, ${b}) === ${c}`;
+
+test(adds, 1, 2, 3);
+test(adds, 10, 100, 110);
+----
+
+For the most part, test macros should be simple.
+
+.{donttitle} Hide Assertions in Macros
+[source,js]
+----
+function gt(a, b) { return a > b; }
+
+function gtTrue(t, a, b) {
+  if(a <= b) { return t.pass(); }
+  t.true(gt(a, b));
+}
+
+test(gtTrue, 1, 2);
+test(gtTrue, 2, 1);
+----
+
+// TODO: "However, some can be more complex if needed" and include something like:
+// https://github.com/CodeLenny/modconf/blob/master/test/priorities/comparisons.js
+
+.{dotitle} Use `beforeEach` for Setup
+[source,js]
+----
+test.beforeEach("creates a", t => {
+  t.context.a = Math.random();
+});
+
+function checksNum(t, fn) {
+  t.true(fn(t.context.a));
+}
+
+test("typeof", checksNum, a => typeof a === "number");
+test("isFinite", checksNum, isFinite);
+----
+
+.{dotitle} Throw Errors if Preconditions not Met
+[source,js]
+----
+test.beforeEach("connect to database", t => {
+  t.context.db = db.connect(/* ... */);
+  if(!t.context.db.connected) {
+    throw new Error("Could not connect to database.");
+  }
+});
+----
+
+=== Test Contents
+
+The contents of the test should run code, and then use an assertion to check the output.
+
+[%hardbreaks]
+{do} Use built-in {ava-assertions}
+{do} Use {ava-planl} (`t.plan(1);`)
+
+Don't use multiple assertions when possible.
+If you need to validate pre-conditions, test in `beforeEach` and throw an error.
+
+Name tests according to the behavior they are checking.
+// TODO: include examples of test names.
+
+.{donttitle} Duplicate Test Titles
+[source,js]
+----
+// returns '200' status code
+test("returns '200'", t => {
+  return request(app)
+    .get("/")
+    .then(res => {
+      t.is(res.status, 200);
+    })
+});
+----
+
+=== Missing from Test Files
+
+Some things are intentionally missing from the test files:
+
+mocks::
+Mocked classes and data structures should be stored as test helpers.
+utility functions::
+Functions that assist in constructing test data should either be run once per test (`before`/`beforeEach`)
+or stored as a test helper.
+
+////
+== Test Documentation
+TODO: describe what documentation is useful/not useful
+////
