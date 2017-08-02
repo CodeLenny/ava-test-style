@@ -12,6 +12,7 @@ Ryan Leonard
 :mochal: link:https://mochajs.org/[{mocha}]
 :chai: Chai
 :chail: link:http://chaijs.com/[{chai}]
+:node: Node.js
 :jsverify: JSVerify
 :jsverifyl: link:https://github.com/jsverify/jsverify[{jsverify}]
 :express: Express
@@ -22,6 +23,10 @@ Ryan Leonard
 :webdriverl: link:http://webdriver.io/[{webdriver}]
 :babel: Babel
 :babell: link:https://babeljs.io/[{babel}]
+:supertest: SuperTest
+:supertestl: link:https://github.com/visionmedia/supertest[{supertest}]
+:status-code: HTTP status code
+:status-codel: link:https://www.w3.org/Protocols/rfc2616/rfc2616-sec10.html[{status-code}]
 :guide-link-title: Ryan's AVA Test Style
 :guide-link: https://github.com/CodeLenny/ava-test-style
 :guide-badge: https://img.shields.io/badge/AVA%20Test%20Style-@CodeLenny-blue.svg
@@ -252,10 +257,204 @@ so integration tests can be lumped together.
 However, integration tests that are isolated to a minor class that doesn't represent the rest of the module could be
 located inside the test directory for that class - such as `users/test/AuthenticationMethod/integration/...`.
 
-////
 == What to Test
-TODO: Describe what tests should go with each category
-////
+
+=== Unit Test Contents
+
+Unit tests should be written for each method and function in the repository.
+
+Include one test showing the basic usage:
+
+.`users/test/Users/getByID/fetches-users.js`
+[source,js]
+----
+const id = "dummy-user";
+const name = "A Fake User";
+// (pre-load database in `before()` hook)
+
+test("finds user", t => {
+  return Users
+    .getByID(id)
+    .then(user => {
+      t.is(user.name, name);
+    });
+});
+----
+
+Next, include tests for missed branches, such as error handling,
+adding additional tests for common uses that hit other branches.
+It might help to examine line/branch/statement coverage reports.
+
+Along with testing error cases, test that input validation correctly identifies improper input.
+
+Finally, test any easily identifiable edge cases.
+Look for bizarre input that should actually pass successfully, such as validating empty passwords,
+as well as documenting any errors that might be thrown, such as validating the password for a missing user.
+
+When responding to bug reports, normally new edge cases will be added as unit tests.
+
+[%hardbreaks]
+{do} Cover common cases, such as omitting optional arguments
+{dont} Test mis-use of functions, like omitting required arguments or providing arguments in the wrong order.
+
+=== HTTP Unit Test Contents
+
+For HTTP routes that wrap unit-tested methods, testing can often be heavily mocked.
+
+Generally, you should write one test that calls the underlying method,
+and checks that the output is correctly returned.
+
+Then evaluate any other branches.
+Does the method respond with a {status-codel} and a custom body if an error is thrown in the test?
+
+See any HTTP API documentation for the current module to see if there are other edge cases.
+
+Try to mock all resources under the wrapped method.  For some tests, you may even be able to mock the method completely,
+and only test the HTTP wrapper.
+
+[%hardbreaks]
+{do} Test HTTP parsing edge cases.
+{dont} Test edge-cases already covered by the wrapped method.
+
+=== Integration Interface Test Contents
+
+When testing the interface between two modules, start with a basic usage that uses both modules.
+
+[source,js]
+----
+const name = "my-sample-name";
+
+test.beforeEach("start server", t => {
+  t.context.server = new Server();
+});
+
+test.beforeEach("start client", t => {
+  t.context.client = new Client();
+});
+
+test("client can login after registration", t => {
+  const { client } = t.context;
+  return client
+    .register({ name })
+    .then(() => client.login())
+    .then(user => {
+      t.is(user.name, name);
+    });
+});
+----
+
+{do} Mock all other resources besides the two modules being tested.
+
+For most cases, integration interface tests are only ensuring:
+
+- Both modules can start without issues
+- The two modules don't conflict when running in the same environment (e.g. reserving the same port)
+- A few methods are able to communicate without issues
+
+[%hardbreaks]
+{do} Test interface edge-cases, like handling error {status-codel}.
+{do} Test flows that include communication between the modules.
+{do} Test sending weird data between the modules, such as non-URL-safe parameters that will be used as the URL.
+{dont} Test methods that don't communicate between modules.
+
+In most cases, covering every possible communication isn't useful.
+Full integration tests will cover most of the useful communication,
+and unit tests will already be covering each method and making sure that each module follows the API spec.
+
+Having duplicate assertions as unit tests for each module as well as on the interface between the two modules
+will likely slow future development, as both assertions will have to be kept up to date with the code,
+and each module might interface with multiple modules, providing a large number of interfaces to check.
+
+However, fully testing the communication between two modules might make sense in two scenarios.
+Mission-critical components may need the reliability,
+and integration interface tests can ensure lasting stability for components not yet in production
+and not tested in full integration tests.
+
+=== Integration Test Contents
+
+Integration tests should evaluate the resulting application, script, or server as a whole, with limited mocking.
+
+However, the tests should still be run in {ava},
+so you can use tools like {supertestl} to start servers without reserving network ports.
+
+[%hardbreaks]
+{do} Write integration tests from a user's perspective.
+{do} Abstract setup of integration tests to focus test files on user-driven features.
+{dont} Think of internal edge-cases that the user wouldn't know about.
+
+Write as many integration tests as you need to test the different scenarios that a user might encounter.
+
+==== JSVerify for Integration Tests
+
+You could setup {jsverifyl} to generate different flows that a user might take through your program,
+to find different edge cases.
+
+.{jsverify} Integration Test Example
+[source,js]
+----
+const test = require("ava");
+const jsc = require("jsverify");
+jsc.ava = require("ava-verify");
+
+// Emulates a user flow through the program:
+const UserEnvironment = require("test/helpers/user-flow/UserEnvironment");
+
+// Builds a random flow of user actions:
+const UserFlow = require("test/helpers/user-flow/UserFlow");
+
+// Builds register/login actions that are bundled:
+const UserRegisterLogin = require("test/helpers/user-flow/UserRegisterLogin");
+
+test.beforeEach("start new user environment", t => {
+  t.context.env = new UserEnvironment();
+});
+
+jsc.ava({
+  suite: "login after registration",
+}, [
+  UserFlow.build(),
+  UserRegisterLogin.build(),
+], (t, state, [ register, login ]) => {
+  t.plan(3);
+  const { env } = t.context.env;
+  return env
+    .all(state) // Get into a random user state (with or without registering or logging in)
+    .then(env => env.do(register)) // then execute user registration
+    .then(env => env.do(login)) // then execute user login using credentials from registration
+    .then(env => {
+      // make assertions about the result from user login
+      t.is(env.code, 200, "should result in 200 status code");
+      t.is(env.url, "/", "should navigate to homepage after login");
+      t.true(env.headers.LOGGED_IN, "should have 'LOGGED_IN' header");
+    });
+});
+----
+
+=== Package Integration Test Contents
+
+The package integration tests should make sure that the fully packaged application:
+
+- Starts
+- Does not depend on any development assets that existed during unit testing
+- Has connections to any needed resources (such as those mocked during standard integration tests)
+
+Standard integration tests should be preferred over package integration tests,
+as the extra development assets loaded into the environment can make tests
+more efficient to process, more succinct, and more debuggable when something goes wrong.
+
+[%hardbreaks]
+{do} Execute tests in a clean environment
+{dont} Have any testing assets in the packaged environment (like `devDependencies` for {node} applications)
+
+[%hardbreaks]
+{do} Test a standard user flow through the application.
+{do} Add edge cases to cover environmental changes from the standard integration tests.
+{dont} Test user flows that can be covered as standard integration tests.
+
+For a web-server that gets packaged into a Docker container, you could spin up the server in the container,
+then use tools like {webdriverl} to point browser instances at the server.
+
+// TODO: Include psudocode for package integration tests.
 
 == Test File Structure
 
