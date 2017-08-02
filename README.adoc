@@ -380,7 +380,7 @@ so you can use tools like {supertestl} to start servers without reserving networ
 [%hardbreaks]
 {do} Write integration tests from a user's perspective.
 {do} Abstract setup of integration tests to focus test files on user-driven features.
-{dont} Think of internal edge-cases that the user wouldn't know about.
+//{dont} Think of internal edge-cases that the user wouldn't know about.
 
 Write as many integration tests as you need to test the different scenarios that a user might encounter.
 
