@@ -471,8 +471,6 @@ All test files should follow the same structure:
 // test contents
 ----
 
-//TODO: Include test 'constants' (to be used in `beforeEach()` + `test()`)
-
 === Requires/Imports
 
 Unless you have good reason for it, put all the `require()` or `import` statements at the top of the file.
@@ -486,8 +484,6 @@ For all other use cases, we recommend using `require()` while `import` isn't nat
 amount of transcompilation.  Either way, use a consistent syntax across your repository.
 
 Roughly order libraries from built-in to local source files.
-
-// TODO: mention NODE_PATH somewhere
 
 [source,js]
 ----
@@ -669,8 +665,3 @@ Mocked classes and data structures should be stored as test helpers.
 utility functions::
 Functions that assist in constructing test data should either be run once per test (`before`/`beforeEach`)
 or stored as a test helper.
-
-////
-== Test Documentation
-TODO: describe what documentation is useful/not useful
-////
